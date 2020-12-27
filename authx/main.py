@@ -1,5 +1,7 @@
 from authx.authenticate import authenticator
 from authx.authorizer import authorizer
+from authx.exception import (InvalidPassword, InvalidUsername,
+                             NotLoggedInError, NotPermittedError)
 
 authenticator.add_user('joe', 'joepassword')
 authorizer.add_permission('test program')
@@ -18,10 +20,33 @@ class Editor:
         }
 
     def is_permitted(self, permission):
-        return True
+        try:
+            authorizer.check_permission(permission, self.username)
+        except NotLoggedInError as e:
+            print("{} is not logged int".format(e.username))
+            return False
+        except NotPermittedError as e:
+            print("{} cannot {}".format(e.username, permission))
+            return False
+        else:
+            return True
 
     def login(self):
-        pass
+        logged_in = False
+
+        while not logged_in:
+            username = input("username: ")
+            password = input("password: ")
+
+            try:
+                logged_in = authenticator.login(username, password)
+            except InvalidUsername:
+                print("Sorry, that username does not exists")
+            except InvalidPassword:
+                print("Sorry, incorrect password")
+            else:
+                self.username = username
+                print("Login successful!")
 
     def test(self):
         if self.is_permitted("test program"):
